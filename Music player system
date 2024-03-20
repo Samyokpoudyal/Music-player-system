@@ -3,7 +3,6 @@ import customtkinter
 from CTkListbox import *
 from CTkMenuBar import *
 import os
-import pathlib
 import pygame 
 from PIL import Image,ImageTk
 from mutagen.mp3 import MP3
@@ -11,28 +10,31 @@ from mutagen.mp3 import MP3
 
 root = customtkinter.CTk() 
 root.geometry("950x950")
-root.minsize(1100,1000)
+root.minsize(800,600)
 root.title("Music Player.MP3")
 
 
 def music_player(a):
     
     pygame.init()
-    
+    if pygame.mixer.music.get_busy()==True:
+        root.after_cancel(vc)
+        
     pygame.mixer.music.load(a)
     song = MP3(a)
     global songLength 
     songLength= song.info.length
-    print(songLength)
-    slider.configure(to=songLength)
     pygame.mixer.music.play()
     get_position_of_slider()
     
-   
+    
+    slider.configure(to=songLength)
 def rewind_function():
     try:
         pygame.mixer.music.rewind()
-    
+        root.after_cancel(vc)
+        slider.set(0)
+        get_position_of_slider()
     except:
         pass
 
@@ -40,8 +42,10 @@ def show_value(value=0):
    try:
        
        pygame.mixer.music.set_pos(value)
-       
-       
+       root.after_cancel(vc)
+
+       get_position_of_slider(value)
+
    except:
        pass
 
@@ -54,9 +58,6 @@ def slider_event(value):
     except:
         pass
 
-def file_dialog_function():
-    file=tkinter.filedialog.askopenfiles()
-
 def searcher(path):
     fi=[]
     path=r'C:\Users'
@@ -64,8 +65,6 @@ def searcher(path):
     for root, dir, files in os.walk(path):
         
         for fil in files:
-            
-            ex=pathlib.Path(fil).suffix
             
             if '.mp3' in fil:
                 
@@ -86,14 +85,21 @@ img2_label=tkinter.Label(image=img2)
 img1=tkinter.PhotoImage(file=r"C:\Users\acer\Downloads\resize-170833453690415798jjjmodified-modified.png")
 img1_label=tkinter.Label(image=img1)
 
+def main_button_function(selected):
 
-def main_button_functions(selected):
-    
-    return main_button_function()
-    
+    slider.set(0)
+    path=r'C:\Users'
+    for roots, dir, files in os.walk(path):
+        
+            if selected in files:
+                
+                selected=os.path.join(roots,selected)
+                
+                music_player(selected)
+                
 
 fr=customtkinter.CTkFrame(master=root)
-lst=CTkListbox(fr,command=main_button_functions)
+lst=CTkListbox(fr,command=main_button_function,hover_color='green',fg_color='blue',highlight_color='red')
 searched=searcher(r"C:\Users")
 
 i=0
@@ -106,29 +112,24 @@ for file in searched[24::]:
 lst.pack(side=tkinter.LEFT,anchor=tkinter.NW,fill='y')
 fr.pack(side=tkinter.LEFT,anchor=tkinter.NW,fill='y')
 
-def main_button_function():
-    a=lst.get()
-
-    path=r'C:\Users'
-    for roots, dir, files in os.walk(path):
-        
-            if a in files:
-                
-                a=os.path.join(roots,a)
-                
-                music_player(a)
-
 def pause_function():
     try:
         if pygame.mixer.music.get_busy()==True:
             pygame.mixer.music.pause()
-        
+            root.after_cancel(vc)
+            global vl
+            vl=slider.get()
+            vl=int(vl)
+            
+            
     
         else:
+            slider.set(vl)
             pygame.mixer.music.unpause()
-
-    except:
-        pass   
+            get_position_of_slider(vl)
+            
+    except Exception as e:
+        print(e)
               
    
 def next_function():
@@ -149,10 +150,10 @@ def next_function():
         pass
                
 
-fr1=customtkinter.CTkFrame(master=root)
+fr1=customtkinter.CTkFrame(master=root,fg_color='orange')
 
-frame_slider=customtkinter.CTkFrame(master=fr1)
-slider = customtkinter.CTkSlider(master=frame_slider, from_=0, to=1, command=slider_event)
+frame_slider=customtkinter.CTkFrame(master=fr1,fg_color='orange')
+slider = customtkinter.CTkSlider(master=frame_slider, from_=0, to=1, command=slider_event,button_hover_color='black',progress_color='red',fg_color='green')
 
 slider.pack(side=tkinter.LEFT,fill='x')
 frame_slider.pack(side=tkinter.LEFT,padx=30,fill='x')
@@ -182,23 +183,23 @@ date_frame.pack(padx=20,side=tkinter.LEFT,fill='x')
 fr1.pack(side=tkinter.BOTTOM,anchor=tkinter.SW,fill='x')
 
 placeholder_frame=customtkinter.CTkFrame(master=root)
-l=tkinter.IntVar()
-slider = customtkinter.CTkSlider(master=placeholder_frame, from_=0, to=100, variable=l,command=show_value,number_of_steps=100)
 
-
+slider = customtkinter.CTkSlider(master=placeholder_frame, from_=0, to=100,command=show_value,button_hover_color='red',progress_color='black',fg_color="green")
 slider.set(0)
 
 slider.pack(fill='x')
 placeholder_frame.pack(side=tkinter.BOTTOM,anchor=tkinter.SW,pady=12,fill='x')
 
 def get_position_of_slider(val=0):
-        
-        slider.set(val)
-        
-        val=val+1
-        root.after(1000,lambda:get_position_of_slider(val))
-
-
+        if pygame.mixer.music.get_busy()==True:
+            slider.set(val)
+            val=val+1
+            
+            global vc
+            vc=root.after(1000,lambda:get_position_of_slider(val))
+        else:
+            root.after_cancel(vc)
+            slider.set(0)
 path = r"C:\Users\acer\Downloads\images-modified.png"
 
 file = ImageTk.PhotoImage(Image.open(path))
